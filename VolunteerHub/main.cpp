@@ -2,7 +2,7 @@
 #include <fstream>
 #include <clocale>
 #include <windows.h> 
-#include <iomanip> // Библиотека для идеального выравнивания таблиц
+#include <iomanip> 
 
 using namespace std;
 
@@ -36,6 +36,9 @@ int requestCount = 0;
 Volunteer volunteers[MAX_VOLUNTEERS];
 int volunteerCount = 0;
 
+// Глобальная переменная для отслеживания роли (true - админ, false - гость)
+bool isAdmin = false;
+
 // ============================================================================
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ЗАЩИТА ВВОДA, СРАВНЕНИЕ СТРОК, НАДЕЖНАЯ ПАУЗА)
 // ============================================================================
@@ -63,12 +66,66 @@ bool areStringsEqual(const char* str1, const char* str2) {
     return str1[i] == str2[i];
 }
 
-// Надежная функция паузы — очищает буфер, чтобы экран не пролетал мимо
+void getValidCategory(char* targetArray) {
+    while (true) {
+        cin >> targetArray;
+        if (areStringsEqual(targetArray, "Медицина") || 
+            areStringsEqual(targetArray, "Поиск") || 
+            areStringsEqual(targetArray, "Еда") || 
+            areStringsEqual(targetArray, "Ремонт")) {
+            break; 
+        }
+        cout << " [!] Ошибка фильтрации: Неверная категория!\n";
+        cout << " Разрешены СТРОГО: Медицина, Поиск, Еда, Ремонт\n";
+        cout << " Повторите ввод: ";
+    }
+}
+
 void waitForEnter() {
     cout << "\nНажмите Enter, чтобы вернуться в меню...";
-    cin.clear();            // Сбрасываем ошибки потока
-    cin.ignore(10000, '\n'); // Очищаем весь накопленный мусор и старые нажатия Enter
-    cin.get();              // Ждем честного нажатия кнопки от пользователя
+    cin.clear();            
+    cin.ignore(10000, '\n'); 
+    cin.get();              
+}
+
+// ============================================================================
+// НОВАЯ ФУНКЦИЯ: ОКНО ВХОДА (АВТОРИЗАЦИЯ)
+// ============================================================================
+
+void loginSystem() {
+    system("cls");
+    cout << "=========================================\n";
+    cout << "      АВТОРИЗАЦИЯ В СИСТЕМЕ VOLUNTEER HUB\n";
+    cout << "=========================================\n";
+    cout << "1. Войти как Координатор (Администратор)\n";
+    cout << "2. Войти как Гость (Только просмотр)\n";
+    cout << "Выберите тип входа: ";
+    int choice = getSafeIntInput();
+
+    if (choice == 1) {
+        char username[20];
+        char password[20];
+        
+        cout << "Введите логин: ";
+        cin >> username;
+        cout << "Введите пароль: ";
+        cin >> password;
+
+        // Жестко прописанные данные для входа
+        if (areStringsEqual(username, "admin") && areStringsEqual(password, "1234")) {
+            isAdmin = true;
+            cout << "\n [ -> ] Доступ разрешен! Добро пожаловать, Координатор.\n";
+            waitForEnter();
+        } else {
+            cout << "\n [!] Ошибка: Неверный логин или пароль! Вход в режиме Гостя.\n";
+            isAdmin = false;
+            waitForEnter();
+        }
+    } else {
+        isAdmin = false;
+        cout << "\n [ -> ] Вход выполнен в режиме Гостя.\n";
+        waitForEnter();
+    }
 }
 
 // ============================================================================
@@ -148,7 +205,7 @@ void loadVolunteers() {
 // ============================================================================
 
 void registerEntity() {
-    system("cls"); // Очищаем экран при входе в регистрацию
+    system("cls"); 
     cout << "\n=========================================\n";
     cout << "         ОКНО РЕГИСТРАЦИИ ДАННЫХ\n";
     cout << "=========================================\n";
@@ -169,7 +226,6 @@ void registerEntity() {
         cout << "Введите ФИО волонтера (СТРОГО через подчеркивание, например Ivanov_Ivan): ";
         cin >> v.name;
         
-        // Проверка на обязательное наличие фамилии и имени (символ '_')
         bool hasUnderscore = false;
         for (int i = 0; v.name[i] != '\0'; i++) {
             if (v.name[i] == '_') { hasUnderscore = true; break; }
@@ -182,8 +238,8 @@ void registerEntity() {
             }
         }
         
-        cout << "Введите навык/специализацию (Медицина, Поиск, Еда, Ремонт): ";
-        cin >> v.skill;
+        cout << "Введите навык (Медицина, Поиск, Еда, Ремонт): ";
+        getValidCategory(v.skill); 
         
         cout << "Введите группу крови (1-4): ";
         v.bloodType = getSafeIntInput();
@@ -210,7 +266,7 @@ void registerEntity() {
         cin >> r.description;
         
         cout << "Введите категорию помощи (Медицина, Поиск, Еда, Ремонт): ";
-        cin >> r.category;
+        getValidCategory(r.category); 
         
         cout << "Уровень критичности (1 - Низкий, 2 - Средняя, 3 - ЧС): ";
         r.urgency = getSafeIntInput();
@@ -241,7 +297,7 @@ void registerEntity() {
 // ============================================================================
 
 void emergencyMatching() {
-    system("cls"); // Очищаем экран
+    system("cls"); 
     cout << "\n=========================================\n";
     cout << "       АЛГОРИТМ ЭКСТРЕННОГО МЭТЧИНГА\n";
     cout << "=========================================\n";
@@ -483,7 +539,6 @@ void showInstructions() {
 // ============================================================================
 
 int main() {
-    // Настраиваем кодировку Windows-1251 (для полноценного русского языка и в консоли, и в блокноте)
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
     setlocale(LC_ALL, "Russian"); 
@@ -491,18 +546,22 @@ int main() {
     loadRequests();
     loadVolunteers();
 
+    // Запускаем окно авторизации перед входом в главное меню
+    loginSystem();
+
     int choice = -1;
     while (choice != 0) {
-        system("cls"); // Очищаем экран перед каждым показом главного меню
+        system("cls"); 
         cout << "\n=========================================\n";
         cout << "          VOLUNTEER HUB SYSTEM           \n";
+        cout << "   Текущий режим: " << (isAdmin ? "[КООРДИНАТОР]" : "[ГОСТЬ]") << "\n";
         cout << "=========================================\n";
-        cout << "1. Регистрация волонтеров и заявок ЧС\n";
-        cout << "2. Экстренный мэтчинг (Поиск кадров)\n";
-        cout << "3. Фиксация помощи и начисление часов\n";
+        cout << "1. Регистрация волонтеров и заявок ЧС "; if(!isAdmin) cout << "(ЗАБЛОКИРОВАНО)"; cout << "\n";
+        cout << "2. Экстренный мэтчинг (Поиск кадров) "; if(!isAdmin) cout << "(ЗАБЛОКИРОВАНО)"; cout << "\n";
+        cout << "3. Фиксация помощи и начисление часов "; if(!isAdmin) cout << "(ЗАБЛОКИРОВАНО)"; cout << "\n";
         cout << "4. Показать заявки (Сортировка по ЧС)\n";
         cout << "5. Вывести аналитику эффективности штаба\n";
-        cout << "6. Экспорт официального отчета в файл\n";
+        cout << "6. Экспорт официального отчета в файл "; if(!isAdmin) cout << "(ЗАБЛОКИРОВАНО)"; cout << "\n";
         cout << "7. Инструкция по работе со штабом\n";
         cout << "0. Сохранить изменения и выйти\n";
         cout << "=========================================\n";
@@ -511,17 +570,33 @@ int main() {
         choice = getSafeIntInput();
 
         switch (choice) {
-            case 1: registerEntity(); break;
-            case 2: emergencyMatching(); break;
-            case 3: closeRequestAndReward(); break;
+            case 1: 
+                if (isAdmin) registerEntity(); 
+                else { cout << " [!] Доступ закрыт! Гости не могут менять базу данных.\n"; waitForEnter(); }
+                break;
+            case 2: 
+                if (isAdmin) emergencyMatching(); 
+                else { cout << " [!] Доступ закрыт! Поиск доступен только координаторам.\n"; waitForEnter(); }
+                break;
+            case 3: 
+                if (isAdmin) closeRequestAndReward(); 
+                else { cout << " [!] Доступ закрыт! Начислять опыт может только админ.\n"; waitForEnter(); }
+                break;
             case 4: printSortedRequests(); break;
             case 5: showAnalytics(); break;
-            case 6: exportReport(); break;
+            case 6: 
+                if (isAdmin) exportReport(); 
+                else { cout << " [!] Доступ закрыт! Экспорт отчетов доступен только админу.\n"; waitForEnter(); }
+                break;
             case 7: showInstructions(); break;
             case 0:
-                saveRequests();
-                saveVolunteers();
-                cout << "\n[!] Все базы сохранены. Завершение работы штаба.\n";
+                if (isAdmin) {
+                    saveRequests();
+                    saveVolunteers();
+                    cout << "\n[!] Все базы сохранены. Завершение работы штаба.\n";
+                } else {
+                    cout << "\n[!] Завершение работы в режиме гостя (изменения не перезаписаны).\n";
+                }
                 break;
             default:
                 cout << " [!] Неверный пункт меню. Повторите попытку.\n";
