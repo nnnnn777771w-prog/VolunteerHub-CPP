@@ -2,6 +2,7 @@
 #include <fstream>
 #include <clocale>
 #include <windows.h> 
+#include <iomanip> // Библиотека для идеального выравнивания таблиц
 
 using namespace std;
 
@@ -14,19 +15,19 @@ const int MAX_VOLUNTEERS = 100;
 
 struct Request {
     int id;
-    char description[100];
-    char category[30];
-    int urgency;
-    int requiredHours;
-    bool isClosed;
+    char description[100]; 
+    char category[30];     
+    int urgency;           
+    int requiredHours;     
+    bool isClosed;         
 };
 
 struct Volunteer {
     int id;
     char name[50];
-    char skill[30];
-    int bloodType;
-    int totalHours;
+    char skill[30];        
+    int bloodType;         
+    int totalHours;        
 };
 
 Request requests[MAX_REQUESTS];
@@ -36,20 +37,18 @@ Volunteer volunteers[MAX_VOLUNTEERS];
 int volunteerCount = 0;
 
 // ============================================================================
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ЗАЩИТА ВВОДA И СРАВНЕНИЕ СТРОК)
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ЗАЩИТА ВВОДA, СРАВНЕНИЕ СТРОК, НАДЕЖНАЯ ПАУЗА)
 // ============================================================================
 
 int getSafeIntInput() {
     int value;
     while (true) {
         cin >> value;
-        if (cin.fail()) {
-            cin.clear();
-            cin.ignore(10000, '\n');
+        if (cin.fail()) { 
+            cin.clear();            
+            cin.ignore(10000, '\n'); 
             cout << " [!] Ошибка! Введите корректное целое число: ";
-        }
-        else {
-            cin.ignore(10000, '\n');
+        } else {
             return value;
         }
     }
@@ -64,6 +63,14 @@ bool areStringsEqual(const char* str1, const char* str2) {
     return str1[i] == str2[i];
 }
 
+// Надежная функция паузы — очищает буфер, чтобы экран не пролетал мимо
+void waitForEnter() {
+    cout << "\nНажмите Enter, чтобы вернуться в меню...";
+    cin.clear();            // Сбрасываем ошибки потока
+    cin.ignore(10000, '\n'); // Очищаем весь накопленный мусор и старые нажатия Enter
+    cin.get();              // Ждем честного нажатия кнопки от пользователя
+}
+
 // ============================================================================
 // ЭТАП 2. ЗАГРУЗКА И СОХРАНЕНИЕ ФАЙЛОВ
 // ============================================================================
@@ -74,11 +81,11 @@ void saveRequests() {
         file << requestCount << "\n";
         for (int i = 0; i < requestCount; ++i) {
             file << requests[i].id << "\n"
-                << requests[i].description << "\n"
-                << requests[i].category << "\n"
-                << requests[i].urgency << "\n"
-                << requests[i].requiredHours << "\n"
-                << requests[i].isClosed << "\n";
+                 << requests[i].description << "\n"
+                 << requests[i].category << "\n"
+                 << requests[i].urgency << "\n"
+                 << requests[i].requiredHours << "\n"
+                 << requests[i].isClosed << "\n";
         }
         file.close();
     }
@@ -109,10 +116,10 @@ void saveVolunteers() {
         file << volunteerCount << "\n";
         for (int i = 0; i < volunteerCount; ++i) {
             file << volunteers[i].id << "\n"
-                << volunteers[i].name << "\n"
-                << volunteers[i].skill << "\n"
-                << volunteers[i].bloodType << "\n"
-                << volunteers[i].totalHours << "\n";
+                 << volunteers[i].name << "\n"
+                 << volunteers[i].skill << "\n"
+                 << volunteers[i].bloodType << "\n"
+                 << volunteers[i].totalHours << "\n";
         }
         file.close();
     }
@@ -137,10 +144,11 @@ void loadVolunteers() {
 }
 
 // ============================================================================
-// ЭТАП 4. РЕГИСТРАЦИЯ ЗАЯВОК И ВОЛОНТЕРОВ (С ФИЛЬТРАЦИЕЙ МУСОРА)
+// ЭТАП 4. РЕГИСТРАЦИЯ ЗАЯВОК И ВОЛОНТЕРОВ
 // ============================================================================
 
 void registerEntity() {
+    system("cls"); // Очищаем экран при входе в регистрацию
     cout << "\n=========================================\n";
     cout << "         ОКНО РЕГИСТРАЦИИ ДАННЫХ\n";
     cout << "=========================================\n";
@@ -152,33 +160,47 @@ void registerEntity() {
     if (choice == 1) {
         if (volunteerCount >= MAX_VOLUNTEERS) {
             cout << " [!] База волонтеров штаба переполнена!\n";
+            waitForEnter();
             return;
         }
         Volunteer v;
-        v.id = (volunteerCount == 0) ? 101 : volunteers[volunteerCount - 1].id + 1;
-
-        cout << "Введите ФИО волонтера (через_подчеркивание, например Ivan_Ivanov): ";
+        v.id = (volunteerCount == 0) ? 1 : volunteers[volunteerCount - 1].id + 1;
+        
+        cout << "Введите ФИО волонтера (СТРОГО через подчеркивание, например Ivanov_Ivan): ";
         cin >> v.name;
-
+        
+        // Проверка на обязательное наличие фамилии и имени (символ '_')
+        bool hasUnderscore = false;
+        for (int i = 0; v.name[i] != '\0'; i++) {
+            if (v.name[i] == '_') { hasUnderscore = true; break; }
+        }
+        while (!hasUnderscore) {
+            cout << " [!] Ошибка: Введите Фамилию и Имя через '_' (например, Petrov_Petr): ";
+            cin >> v.name;
+            for (int i = 0; v.name[i] != '\0'; i++) {
+                if (v.name[i] == '_') { hasUnderscore = true; break; }
+            }
+        }
+        
         cout << "Введите навык/специализацию (Медицина, Поиск, Еда, Ремонт): ";
         cin >> v.skill;
-
-        // Фильтр группы крови (строго от 1 до 4)
+        
         cout << "Введите группу крови (1-4): ";
         v.bloodType = getSafeIntInput();
         while (v.bloodType < 1 || v.bloodType > 4) {
-            cout << " [!] Ошибка фильтрации: Группа крови должна быть от 1 до 4. Повторите ввод: ";
+            cout << " [!] Ошибка: Группа крови должна быть от 1 до 4. Повторите ввод: ";
             v.bloodType = getSafeIntInput();
         }
-
+        
         v.totalHours = 0;
         volunteers[volunteerCount] = v;
         volunteerCount++;
         cout << " -> Успешно! Волонтер зарегистрирован с ID: " << v.id << "\n";
-    }
+    } 
     else if (choice == 2) {
         if (requestCount >= MAX_REQUESTS) {
             cout << " [!] База заявок штаба переполнена!\n";
+            waitForEnter();
             return;
         }
         Request r;
@@ -186,26 +208,24 @@ void registerEntity() {
 
         cout << "Введите описание проблемы (через_подчеркивание): ";
         cin >> r.description;
-
+        
         cout << "Введите категорию помощи (Медицина, Поиск, Еда, Ремонт): ";
         cin >> r.category;
-
-        // Фильтр уровня критичности (строго от 1 до 3)
+        
         cout << "Уровень критичности (1 - Низкий, 2 - Средняя, 3 - ЧС): ";
         r.urgency = getSafeIntInput();
         while (r.urgency < 1 || r.urgency > 3) {
-            cout << " [!] Ошибка фильтрации: Уровень ЧС может быть только от 1 до 3. Повторите ввод: ";
+            cout << " [!] Ошибка: Уровень ЧС может быть только от 1 до 3. Повторите ввод: ";
             r.urgency = getSafeIntInput();
         }
-
-        // Фильтр адекватности рабочих часов (от 1 до 24 часов за раз)
+        
         cout << "Необходимое количество часов работы (1-24): ";
         r.requiredHours = getSafeIntInput();
         while (r.requiredHours <= 0 || r.requiredHours > 24) {
-            cout << " [!] Ошибка фильтрации: Часы задачи должны быть в диапазоне от 1 до 24. Повторите ввод: ";
+            cout << " [!] Ошибка: Часы должны быть от 1 до 24. Повторите ввод: ";
             r.requiredHours = getSafeIntInput();
         }
-
+        
         r.isClosed = false;
         requests[requestCount] = r;
         requestCount++;
@@ -213,6 +233,7 @@ void registerEntity() {
     }
     saveRequests();
     saveVolunteers();
+    waitForEnter();
 }
 
 // ============================================================================
@@ -220,6 +241,7 @@ void registerEntity() {
 // ============================================================================
 
 void emergencyMatching() {
+    system("cls"); // Очищаем экран
     cout << "\n=========================================\n";
     cout << "       АЛГОРИТМ ЭКСТРЕННОГО МЭТЧИНГА\n";
     cout << "=========================================\n";
@@ -228,36 +250,37 @@ void emergencyMatching() {
 
     int foundIdx = -1;
     for (int i = 0; i < requestCount; ++i) {
-        if (requests[i].id == targetId) {
-            foundIdx = i;
-            break;
-        }
+        if (requests[i].id == targetId) { foundIdx = i; break; }
     }
 
     if (foundIdx == -1) {
         cout << " [!] Заявка с таким ID не найдена.\n";
+        waitForEnter();
         return;
     }
 
     cout << " Анализ задачи: [" << requests[foundIdx].description << "]\n";
     cout << " Требуемый навык: " << requests[foundIdx].category << "\n";
     cout << "-----------------------------------------\n";
-    cout << "| ID  | Подходящий волонтер  | Навык    |\n";
+    cout << "| " << setw(4) << left << "ID" 
+         << "| " << setw(20) << left << "Подходящий волонтер" 
+         << "| " << setw(10) << left << "Навык" << "|\n";
     cout << "-----------------------------------------\n";
 
     bool anyFound = false;
     for (int i = 0; i < volunteerCount; ++i) {
         if (areStringsEqual(volunteers[i].skill, requests[foundIdx].category)) {
-            cout << "| " << volunteers[i].id << " | "
-                << volunteers[i].name << " \t| "
-                << volunteers[i].skill << " |\n";
+            cout << "| " << setw(4) << left << volunteers[i].id 
+                 << "| " << setw(20) << left << volunteers[i].name 
+                 << "| " << setw(10) << left << volunteers[i].skill << "|\n";
             anyFound = true;
         }
     }
     if (!anyFound) {
-        cout << "|      Свободные специалисты не найдены |\n";
+        cout << "|        Свободные специалисты не найдены        |\n";
     }
     cout << "-----------------------------------------\n";
+    waitForEnter(); 
 }
 
 // ============================================================================
@@ -265,6 +288,7 @@ void emergencyMatching() {
 // ============================================================================
 
 void closeRequestAndReward() {
+    system("cls");
     cout << "\n=========================================\n";
     cout << "          ФИКСАЦИЯ ВЫПОЛНЕНИЯ ПОМОЩИ\n";
     cout << "=========================================\n";
@@ -273,14 +297,12 @@ void closeRequestAndReward() {
 
     int reqIdx = -1;
     for (int i = 0; i < requestCount; ++i) {
-        if (requests[i].id == reqId) {
-            reqIdx = i;
-            break;
-        }
+        if (requests[i].id == reqId) { reqIdx = i; break; }
     }
 
     if (reqIdx == -1 || requests[reqIdx].isClosed) {
         cout << " [!] Заявка не найдена или уже была закрыта.\n";
+        waitForEnter();
         return;
     }
 
@@ -289,24 +311,23 @@ void closeRequestAndReward() {
 
     int volIdx = -1;
     for (int i = 0; i < volunteerCount; ++i) {
-        if (volunteers[i].id == volId) {
-            volIdx = i;
-            break;
-        }
+        if (volunteers[i].id == volId) { volIdx = i; break; }
     }
 
     if (volIdx == -1) {
         cout << " [!] Волонтер с таким ID не найден.\n";
+        waitForEnter();
         return;
     }
 
     requests[reqIdx].isClosed = true;
     volunteers[volIdx].totalHours += requests[reqIdx].requiredHours;
 
-    cout << " -> Статус изменен! Волонтеру " << volunteers[volIdx].name
-        << " успешно начислено " << requests[reqIdx].requiredHours << " ч.\n";
+    cout << " -> Статус изменен! Волонтеру " << volunteers[volIdx].name 
+         << " успешно начислено " << requests[reqIdx].requiredHours << " ч.\n";
     saveRequests();
     saveVolunteers();
+    waitForEnter();
 }
 
 // ============================================================================
@@ -314,19 +335,19 @@ void closeRequestAndReward() {
 // ============================================================================
 
 void printSortedRequests() {
+    system("cls");
     cout << "\n=========================================================================\n";
     cout << "            АКТУАЛЬНЫЕ ЗАЯВКИ (СОРТИРОВКА ПО УРОВНЮ ЧС)\n";
     cout << "=========================================================================\n";
 
     if (requestCount == 0) {
         cout << " База данных заявок пуста.\n";
+        waitForEnter();
         return;
     }
 
     Request temp[MAX_REQUESTS];
-    for (int i = 0; i < requestCount; ++i) {
-        temp[i] = requests[i];
-    }
+    for (int i = 0; i < requestCount; ++i) { temp[i] = requests[i]; }
 
     for (int i = 0; i < requestCount - 1; ++i) {
         for (int j = 0; j < requestCount - i - 1; ++j) {
@@ -339,17 +360,24 @@ void printSortedRequests() {
     }
 
     cout << "-------------------------------------------------------------------------\n";
-    cout << "| ID  | КРИТ. | КАТЕГОРИЯ       | ЧАСЫ | СТАТУС     | ОПИСАНИЕ          |\n";
+    cout << "| " << setw(4) << left << "ID" 
+         << "| " << setw(6) << left << "КРИТ." 
+         << "| " << setw(15) << left << "КАТЕГОРИЯ" 
+         << "| " << setw(6) << left << "ЧАСЫ" 
+         << "| " << setw(10) << left << "СТАТУС" 
+         << "| " << setw(20) << left << "ОПИСАНИЕ" << "|\n";
     cout << "-------------------------------------------------------------------------\n";
+    
     for (int i = 0; i < requestCount; ++i) {
-        cout << "| " << temp[i].id << "   |   "
-            << temp[i].urgency << "   | "
-            << temp[i].category << " \t| "
-            << temp[i].requiredHours << "    | "
-            << (temp[i].isClosed ? "ЗАКРЫТА " : "ОТКРЫТА ") << " | "
-            << temp[i].description << "\n";
+        cout << "| " << setw(4) << left << temp[i].id 
+             << "| " << setw(6) << left << temp[i].urgency 
+             << "| " << setw(15) << left << temp[i].category 
+             << "| " << setw(6) << left << temp[i].requiredHours 
+             << "| " << setw(10) << left << (temp[i].isClosed ? "ЗАКРЫТА" : "ОТКРЫТА") 
+             << "| " << setw(20) << left << temp[i].description << "|\n";
     }
     cout << "-------------------------------------------------------------------------\n";
+    waitForEnter();
 }
 
 // ============================================================================
@@ -357,12 +385,14 @@ void printSortedRequests() {
 // ============================================================================
 
 void showAnalytics() {
+    system("cls");
     cout << "\n=========================================\n";
     cout << "      АНАЛИТИКА ЭФФЕКТИВНОСТИ ШТАБА\n";
     cout << "=========================================\n";
 
     if (requestCount == 0) {
         cout << " Нет данных для анализа.\n";
+        waitForEnter();
         return;
     }
 
@@ -375,9 +405,7 @@ void showAnalytics() {
         else activeCount++;
     }
 
-    for (int i = 0; i < volunteerCount; ++i) {
-        totalVolHours += volunteers[i].totalHours;
-    }
+    for (int i = 0; i < volunteerCount; ++i) { totalVolHours += volunteers[i].totalHours; }
 
     double closedPercent = ((double)closedCount / requestCount) * 100.0;
 
@@ -386,6 +414,7 @@ void showAnalytics() {
     cout << " Процент выполнения задач штаба:   " << closedPercent << " %\n";
     cout << " Суммарный вклад работы волонтеров: " << totalVolHours << " человеко-часов\n";
     cout << "=========================================\n";
+    waitForEnter();
 }
 
 // ============================================================================
@@ -393,9 +422,11 @@ void showAnalytics() {
 // ============================================================================
 
 void exportReport() {
+    system("cls");
     ofstream report("report.txt");
     if (!report.is_open()) {
         cout << " [!] Не удалось создать файл отчета.\n";
+        waitForEnter();
         return;
     }
 
@@ -409,16 +440,17 @@ void exportReport() {
     report << "| ID  | CATEGORY        | URGENCY | STATUS    | HOURS   |\n";
     report << "---------------------------------------------------------\n";
     for (int i = 0; i < requestCount; ++i) {
-        report << "| " << requests[i].id << "   | "
-            << requests[i].category << " \t|   "
-            << requests[i].urgency << "     | "
-            << (requests[i].isClosed ? "CLOSED " : "OPEN   ") << " | "
-            << requests[i].requiredHours << " \t|\n";
+        report << "| " << requests[i].id << "   | " 
+               << requests[i].category << " \t|   " 
+               << requests[i].urgency << "     | " 
+               << (requests[i].isClosed ? "CLOSED " : "OPEN   ") << " | " 
+               << requests[i].requiredHours << " \t|\n";
     }
     report << "---------------------------------------------------------\n";
 
     report.close();
     cout << " -> Успешно! Сводная таблица сохранена в файл 'report.txt'.\n";
+    waitForEnter();
 }
 
 // ============================================================================
@@ -426,32 +458,24 @@ void exportReport() {
 // ============================================================================
 
 void showInstructions() {
+    system("cls");
     cout << "\n=========================================================\n";
     cout << "          ИНСТРУКЦИЯ ПОЛЬЗОВАТЕЛЯ VOLUNTEER HUB          \n";
     cout << "=========================================================\n";
     cout << " Добро пожаловать в систему координации штаба ЧС!\n\n";
-
     cout << " 1. Правила ввода текстовых данных:\n";
-    cout << "    ВАЖНО: Вводите любые имена, фамилии и описания задач\n";
-    cout << "    СТРОГО через нижнее подчеркивание (например: Ivan_Ivanov).\n";
-    cout << "    Пробелы использовать нельзя — это ограничение потока cin.\n\n";
-
+    cout << "    ВАЖНО: Вводите ФИО и описания строго через подчеркивание\n";
+    cout << "    (например: Ivanov_Ivan). Программа автоматически отклонит\n";
+    cout << "    простые одиночные имена без фамилии ради чистоты базы.\n\n";
     cout << " 2. Система умной фильтрации мусора:\n";
     cout << "    Приложение автоматически отклоняет некорректные данные.\n";
     cout << "    Группа крови должна быть от 1 до 4, уровень ЧС от 1 до 3,\n";
     cout << "    а время одной задачи — не более 24 часов.\n\n";
-
-    cout << " 3. Фиксация выполненной работы:\n";
-    cout << "    Когда задача выполнена, выберите пункт 3. Введите ID задачи\n";
-    cout << "    и ID волонтера. Задача закроется, а волонтеру автоматически\n";
-    cout << "    начислятся рабочие часы.\n\n";
-
-    cout << " 4. Сохранение данных:\n";
+    cout << " 3. Сохранение данных:\n";
     cout << "    База данных сохраняется автоматически при нажатии '0'\n";
     cout << "    и корректном выходе из программы.\n";
     cout << "=========================================================\n";
-    cout << "Нажмите '1' и Enter для возврата в главное меню: ";
-    int back = getSafeIntInput();
+    waitForEnter();
 }
 
 // ============================================================================
@@ -459,15 +483,17 @@ void showInstructions() {
 // ============================================================================
 
 int main() {
-    SetConsoleCP(65001);
-    SetConsoleOutputCP(65001);
-    setlocale(LC_ALL, ".UTF8");
+    // Настраиваем кодировку Windows-1251 (для полноценного русского языка и в консоли, и в блокноте)
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    setlocale(LC_ALL, "Russian"); 
 
     loadRequests();
     loadVolunteers();
 
     int choice = -1;
     while (choice != 0) {
+        system("cls"); // Очищаем экран перед каждым показом главного меню
         cout << "\n=========================================\n";
         cout << "          VOLUNTEER HUB SYSTEM           \n";
         cout << "=========================================\n";
@@ -485,20 +511,21 @@ int main() {
         choice = getSafeIntInput();
 
         switch (choice) {
-        case 1: registerEntity(); break;
-        case 2: emergencyMatching(); break;
-        case 3: closeRequestAndReward(); break;
-        case 4: printSortedRequests(); break;
-        case 5: showAnalytics(); break;
-        case 6: exportReport(); break;
-        case 7: showInstructions(); break;
-        case 0:
-            saveRequests();
-            saveVolunteers();
-            cout << "\n[!] Все базы сохранены. Завершение работы штаба.\n";
-            break;
-        default:
-            cout << " [!] Неверный пункт меню. Повторите попытку.\n";
+            case 1: registerEntity(); break;
+            case 2: emergencyMatching(); break;
+            case 3: closeRequestAndReward(); break;
+            case 4: printSortedRequests(); break;
+            case 5: showAnalytics(); break;
+            case 6: exportReport(); break;
+            case 7: showInstructions(); break;
+            case 0:
+                saveRequests();
+                saveVolunteers();
+                cout << "\n[!] Все базы сохранены. Завершение работы штаба.\n";
+                break;
+            default:
+                cout << " [!] Неверный пункт меню. Повторите попытку.\n";
+                waitForEnter();
         }
     }
     return 0;
