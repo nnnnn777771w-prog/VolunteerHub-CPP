@@ -36,8 +36,23 @@ int requestCount = 0;
 Volunteer volunteers[MAX_VOLUNTEERS];
 int volunteerCount = 0;
 
-// Глобальная переменная для отслеживания роли (true - админ, false - гость)
 bool isAdmin = false;
+
+// ============================================================================
+// МОДУЛЬ: ФУНКЦИИ ДЛЯ РАБОТЫ С ЦВЕТОМ КОНСОЛИ
+// ============================================================================
+
+void setColor(int colorCode) {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, colorCode);
+}
+
+void colorReset() { setColor(7); }   
+void colorRed() { setColor(12); }    
+void colorGreen() { setColor(10); }  
+void colorYellow() { setColor(14); } 
+void colorCyan() { setColor(11); }   
+void colorWhite() { setColor(15); }  
 
 // ============================================================================
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ЗАЩИТА ВВОДA, СРАВНЕНИЕ СТРОК, НАДЕЖНАЯ ПАУЗА)
@@ -50,7 +65,9 @@ int getSafeIntInput() {
         if (cin.fail()) { 
             cin.clear();            
             cin.ignore(10000, '\n'); 
+            colorRed();
             cout << " [!] Ошибка! Введите корректное целое число: ";
+            colorReset();
         } else {
             return value;
         }
@@ -66,18 +83,31 @@ bool areStringsEqual(const char* str1, const char* str2) {
     return str1[i] == str2[i];
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ: без ошибки C2679 / E0349
 void getValidCategory(char* targetArray) {
+    char buffer[30];
     while (true) {
-        cin >> targetArray;
-        if (areStringsEqual(targetArray, "Медицина") || 
-            areStringsEqual(targetArray, "Поиск") || 
-            areStringsEqual(targetArray, "Еда") || 
-            areStringsEqual(targetArray, "Ремонт")) {
+        cin >> buffer;
+        if (areStringsEqual(buffer, "Медицина") || 
+            areStringsEqual(buffer, "Поиск") || 
+            areStringsEqual(buffer, "Еда") || 
+            areStringsEqual(buffer, "Ремонт")) {
+            
+            int i = 0;
+            while (buffer[i] != '\0' && i < 29) {
+                targetArray[i] = buffer[i];
+                i++;
+            }
+            targetArray[i] = '\0';
             break; 
         }
+        colorRed();
         cout << " [!] Ошибка фильтрации: Неверная категория!\n";
+        colorYellow();
         cout << " Разрешены СТРОГО: Медицина, Поиск, Еда, Ремонт\n";
+        colorWhite();
         cout << " Повторите ввод: ";
+        colorReset();
     }
 }
 
@@ -89,17 +119,21 @@ void waitForEnter() {
 }
 
 // ============================================================================
-// НОВАЯ ФУНКЦИЯ: ОКНО ВХОДА (АВТОРИЗАЦИЯ)
+// ОКНО ВХОДА (АВТОРИЗАЦИЯ С ЦВЕТНЫМ ИНТЕРФЕЙСОМ)
 // ============================================================================
 
 void loginSystem() {
     system("cls");
+    colorCyan();
     cout << "=========================================\n";
     cout << "      АВТОРИЗАЦИЯ В СИСТЕМЕ VOLUNTEER HUB\n";
     cout << "=========================================\n";
+    colorReset();
     cout << "1. Войти как Координатор (Администратор)\n";
     cout << "2. Войти как Гость (Только просмотр)\n";
+    colorYellow();
     cout << "Выберите тип входа: ";
+    colorReset();
     int choice = getSafeIntInput();
 
     if (choice == 1) {
@@ -111,19 +145,24 @@ void loginSystem() {
         cout << "Введите пароль: ";
         cin >> password;
 
-        // Жестко прописанные данные для входа
         if (areStringsEqual(username, "admin") && areStringsEqual(password, "1234")) {
             isAdmin = true;
+            colorGreen();
             cout << "\n [ -> ] Доступ разрешен! Добро пожаловать, Координатор.\n";
+            colorReset();
             waitForEnter();
         } else {
+            colorRed();
             cout << "\n [!] Ошибка: Неверный логин или пароль! Вход в режиме Гостя.\n";
+            colorReset();
             isAdmin = false;
             waitForEnter();
         }
     } else {
         isAdmin = false;
+        colorYellow();
         cout << "\n [ -> ] Вход выполнен в режиме Гостя.\n";
+        colorReset();
         waitForEnter();
     }
 }
@@ -206,24 +245,30 @@ void loadVolunteers() {
 
 void registerEntity() {
     system("cls"); 
+    colorCyan();
     cout << "\n=========================================\n";
     cout << "         ОКНО РЕГИСТРАЦИИ ДАННЫХ\n";
     cout << "=========================================\n";
+    colorReset();
     cout << "1. Зарегистрировать нового волонтера\n";
     cout << "2. Добавить новую заявку на помощь\n";
+    colorYellow();
     cout << "Выберите действие (1-2): ";
+    colorReset();
     int choice = getSafeIntInput();
 
     if (choice == 1) {
         if (volunteerCount >= MAX_VOLUNTEERS) {
+            colorRed();
             cout << " [!] База волонтеров штаба переполнена!\n";
+            colorReset();
             waitForEnter();
             return;
         }
         Volunteer v;
         v.id = (volunteerCount == 0) ? 1 : volunteers[volunteerCount - 1].id + 1;
         
-        cout << "Введите ФИО волонтера (СТРОГО через подчеркивание, например Ivanov_Ivan): ";
+        cout << "Введите ФИО волонтера (через подчеркивание, например Ivanov_Ivan): ";
         cin >> v.name;
         
         bool hasUnderscore = false;
@@ -231,7 +276,9 @@ void registerEntity() {
             if (v.name[i] == '_') { hasUnderscore = true; break; }
         }
         while (!hasUnderscore) {
+            colorRed();
             cout << " [!] Ошибка: Введите Фамилию и Имя через '_' (например, Petrov_Petr): ";
+            colorReset();
             cin >> v.name;
             for (int i = 0; v.name[i] != '\0'; i++) {
                 if (v.name[i] == '_') { hasUnderscore = true; break; }
@@ -244,18 +291,24 @@ void registerEntity() {
         cout << "Введите группу крови (1-4): ";
         v.bloodType = getSafeIntInput();
         while (v.bloodType < 1 || v.bloodType > 4) {
+            colorRed();
             cout << " [!] Ошибка: Группа крови должна быть от 1 до 4. Повторите ввод: ";
+            colorReset();
             v.bloodType = getSafeIntInput();
         }
         
         v.totalHours = 0;
         volunteers[volunteerCount] = v;
         volunteerCount++;
+        colorGreen();
         cout << " -> Успешно! Волонтер зарегистрирован с ID: " << v.id << "\n";
+        colorReset();
     } 
     else if (choice == 2) {
         if (requestCount >= MAX_REQUESTS) {
+            colorRed();
             cout << " [!] База заявок штаба переполнена!\n";
+            colorReset();
             waitForEnter();
             return;
         }
@@ -271,21 +324,27 @@ void registerEntity() {
         cout << "Уровень критичности (1 - Низкий, 2 - Средняя, 3 - ЧС): ";
         r.urgency = getSafeIntInput();
         while (r.urgency < 1 || r.urgency > 3) {
+            colorRed();
             cout << " [!] Ошибка: Уровень ЧС может быть только от 1 до 3. Повторите ввод: ";
+            colorReset();
             r.urgency = getSafeIntInput();
         }
         
         cout << "Необходимое количество часов работы (1-24): ";
         r.requiredHours = getSafeIntInput();
         while (r.requiredHours <= 0 || r.requiredHours > 24) {
+            colorRed();
             cout << " [!] Ошибка: Часы должны быть от 1 до 24. Повторите ввод: ";
+            colorReset();
             r.requiredHours = getSafeIntInput();
         }
         
         r.isClosed = false;
         requests[requestCount] = r;
         requestCount++;
+        colorGreen();
         cout << " -> Успешно! Заявка добавлена с ID: " << r.id << "\n";
+        colorReset();
     }
     saveRequests();
     saveVolunteers();
@@ -298,9 +357,11 @@ void registerEntity() {
 
 void emergencyMatching() {
     system("cls"); 
+    colorCyan();
     cout << "\n=========================================\n";
     cout << "       АЛГОРИТМ ЭКСТРЕННОГО МЭТЧИНГА\n";
     cout << "=========================================\n";
+    colorReset();
     cout << "Введите ID заявки для подбора команды: ";
     int targetId = getSafeIntInput();
 
@@ -310,18 +371,23 @@ void emergencyMatching() {
     }
 
     if (foundIdx == -1) {
+        colorRed();
         cout << " [!] Заявка с таким ID не найдена.\n";
+        colorReset();
         waitForEnter();
         return;
     }
 
+    colorYellow();
     cout << " Анализ задачи: [" << requests[foundIdx].description << "]\n";
     cout << " Требуемый навык: " << requests[foundIdx].category << "\n";
+    colorCyan();
     cout << "-----------------------------------------\n";
     cout << "| " << setw(4) << left << "ID" 
          << "| " << setw(20) << left << "Подходящий волонтер" 
          << "| " << setw(10) << left << "Навык" << "|\n";
     cout << "-----------------------------------------\n";
+    colorReset();
 
     bool anyFound = false;
     for (int i = 0; i < volunteerCount; ++i) {
@@ -333,9 +399,13 @@ void emergencyMatching() {
         }
     }
     if (!anyFound) {
+        colorYellow();
         cout << "|        Свободные специалисты не найдены        |\n";
+        colorReset();
     }
+    colorCyan();
     cout << "-----------------------------------------\n";
+    colorReset();
     waitForEnter(); 
 }
 
@@ -345,9 +415,11 @@ void emergencyMatching() {
 
 void closeRequestAndReward() {
     system("cls");
+    colorCyan();
     cout << "\n=========================================\n";
     cout << "          ФИКСАЦИЯ ВЫПОЛНЕНИЯ ПОМОЩИ\n";
     cout << "=========================================\n";
+    colorReset();
     cout << "Введите ID закрываемой заявки: ";
     int reqId = getSafeIntInput();
 
@@ -357,7 +429,9 @@ void closeRequestAndReward() {
     }
 
     if (reqIdx == -1 || requests[reqIdx].isClosed) {
+        colorRed();
         cout << " [!] Заявка не найдена или уже была закрыта.\n";
+        colorReset();
         waitForEnter();
         return;
     }
@@ -371,7 +445,9 @@ void closeRequestAndReward() {
     }
 
     if (volIdx == -1) {
+        colorRed();
         cout << " [!] Волонтер с таким ID не найден.\n";
+        colorReset();
         waitForEnter();
         return;
     }
@@ -379,25 +455,31 @@ void closeRequestAndReward() {
     requests[reqIdx].isClosed = true;
     volunteers[volIdx].totalHours += requests[reqIdx].requiredHours;
 
+    colorGreen();
     cout << " -> Статус изменен! Волонтеру " << volunteers[volIdx].name 
          << " успешно начислено " << requests[reqIdx].requiredHours << " ч.\n";
+    colorReset();
     saveRequests();
     saveVolunteers();
     waitForEnter();
 }
 
 // ============================================================================
-// ЭТАП 7. ПУЗЫРЬКОВАЯ СОРТИРОВКА ПО КРИТИЧНОСТИ
+// ЭТАП 7. ПУЗЫРЬКОВАЯ СОРТИРОВКА ПО КРИТИЧНОСТИ С ЦВЕТНЫМ ВЫДЕЛЕНИЕМ ЧС
 // ============================================================================
 
 void printSortedRequests() {
     system("cls");
+    colorCyan();
     cout << "\n=========================================================================\n";
     cout << "            АКТУАЛЬНЫЕ ЗАЯВКИ (СОРТИРОВКА ПО УРОВНЮ ЧС)\n";
     cout << "=========================================================================\n";
+    colorReset();
 
     if (requestCount == 0) {
+        colorYellow();
         cout << " База данных заявок пуста.\n";
+        colorReset();
         waitForEnter();
         return;
     }
@@ -415,6 +497,7 @@ void printSortedRequests() {
         }
     }
 
+    colorCyan();
     cout << "-------------------------------------------------------------------------\n";
     cout << "| " << setw(4) << left << "ID" 
          << "| " << setw(6) << left << "КРИТ." 
@@ -423,31 +506,48 @@ void printSortedRequests() {
          << "| " << setw(10) << left << "СТАТУС" 
          << "| " << setw(20) << left << "ОПИСАНИЕ" << "|\n";
     cout << "-------------------------------------------------------------------------\n";
+    colorReset();
     
     for (int i = 0; i < requestCount; ++i) {
+        if (temp[i].urgency == 3 && !temp[i].isClosed) {
+            colorRed();
+        } else if (temp[i].isClosed) {
+            colorGreen(); 
+        } else {
+            colorWhite(); 
+        }
+
         cout << "| " << setw(4) << left << temp[i].id 
              << "| " << setw(6) << left << temp[i].urgency 
              << "| " << setw(15) << left << temp[i].category 
              << "| " << setw(6) << left << temp[i].requiredHours 
              << "| " << setw(10) << left << (temp[i].isClosed ? "ЗАКРЫТА" : "ОТКРЫТА") 
              << "| " << setw(20) << left << temp[i].description << "|\n";
+        
+        colorReset();
     }
+    colorCyan();
     cout << "-------------------------------------------------------------------------\n";
+    colorReset();
     waitForEnter();
 }
 
 // ============================================================================
-// ЭТАП 8. АНАЛИТИКА ЭФФЕКТИВНОСТИ ШТАБА
+// ЭТАП 8. АНАЛИТИКА ЭФФЕКТИВНОСТИ ШТАБА (ЦВЕТНЫЕ ПОКАЗАТЕЛИ)
 // ============================================================================
 
 void showAnalytics() {
     system("cls");
+    colorCyan();
     cout << "\n=========================================\n";
     cout << "      АНАЛИТИКА ЭФФЕКТИВНОСТИ ШТАБА\n";
     cout << "=========================================\n";
+    colorReset();
 
     if (requestCount == 0) {
+        colorYellow();
         cout << " Нет данных для анализа.\n";
+        colorReset();
         waitForEnter();
         return;
     }
@@ -465,11 +565,13 @@ void showAnalytics() {
 
     double closedPercent = ((double)closedCount / requestCount) * 100.0;
 
-    cout << " Активных (открытых) заявок в ЧС: " << activeCount << "\n";
-    cout << " Успешно закрытых задач населения: " << closedCount << "\n";
-    cout << " Процент выполнения задач штаба:   " << closedPercent << " %\n";
-    cout << " Суммарный вклад работы волонтеров: " << totalVolHours << " человеко-часов\n";
+    cout << " Активных (открытых) заявок в ЧС: "; colorRed(); cout << activeCount << "\n"; colorReset();
+    cout << " Успешно закрытых задач населения: "; colorGreen(); cout << closedCount << "\n"; colorReset();
+    cout << " Процент выполнения задач штаба:   "; colorYellow(); cout << closedPercent << " %\n"; colorReset();
+    cout << " Суммарный вклад работы волонтеров: "; colorCyan(); cout << totalVolHours << " ч.\n"; colorReset();
+    colorCyan();
     cout << "=========================================\n";
+    colorReset();
     waitForEnter();
 }
 
@@ -481,7 +583,9 @@ void exportReport() {
     system("cls");
     ofstream report("report.txt");
     if (!report.is_open()) {
+        colorRed();
         cout << " [!] Не удалось создать файл отчета.\n";
+        colorReset();
         waitForEnter();
         return;
     }
@@ -505,101 +609,114 @@ void exportReport() {
     report << "---------------------------------------------------------\n";
 
     report.close();
+    colorGreen();
     cout << " -> Успешно! Сводная таблица сохранена в файл 'report.txt'.\n";
+    colorReset();
     waitForEnter();
 }
-
-// ============================================================================
-// ДОПОЛНИТЕЛЬНО: ИНСТРУКЦИЯ ПОЛЬЗОВАТЕЛЯ
-// ============================================================================
 
 void showInstructions() {
     system("cls");
+    colorCyan();
     cout << "\n=========================================================\n";
     cout << "          ИНСТРУКЦИЯ ПОЛЬЗОВАТЕЛЯ VOLUNTEER HUB          \n";
     cout << "=========================================================\n";
+    colorReset();
     cout << " Добро пожаловать в систему координации штаба ЧС!\n\n";
     cout << " 1. Правила ввода текстовых данных:\n";
     cout << "    ВАЖНО: Вводите ФИО и описания строго через подчеркивание\n";
-    cout << "    (например: Ivanov_Ivan). Программа автоматически отклонит\n";
-    cout << "    простые одиночные имена без фамилии ради чистоты базы.\n\n";
+    cout << "    (например: Ivanov_Ivan).\n\n";
     cout << " 2. Система умной фильтрации мусора:\n";
-    cout << "    Приложение автоматически отклоняет некорректные данные.\n";
-    cout << "    Группа крови должна быть от 1 до 4, уровень ЧС от 1 до 3,\n";
-    cout << "    а время одной задачи — не более 24 часов.\n\n";
+    cout << "    Группа крови должна быть от 1 до 4, уровень ЧС от 1 до 3.\n\n";
     cout << " 3. Сохранение данных:\n";
-    cout << "    База данных сохраняется автоматически при нажатии '0'\n";
-    cout << "    и корректном выходе из программы.\n";
+    cout << "    База данных сохраняется автоматически при нажатии '0'.\n";
+    colorCyan();
     cout << "=========================================================\n";
+    colorReset();
     waitForEnter();
 }
 
 // ============================================================================
-// ГЛАВНЫЙ ЦИКЛ ПРОГРАММЫ И МЕНЮ SWITCH
+// ГЛАВНЫЙ ЦИКЛ ПРОГРАММЫ И МЕНЮ SWITCH С ЦВЕТНЫМИ ПОДСКАЗКАМИ
 // ============================================================================
 
 int main() {
-    SetConsoleCP(1251);
-    SetConsoleOutputCP(1251);
-    setlocale(LC_ALL, "Russian"); 
+    int main() {
+    // Настройки кодировки удалены для кроссплатформенности. 
+    // Настройте кодировку вашего терминала (UTF-8 / CP1251) в параметрах компилятора.
 
     loadRequests();
     loadVolunteers();
 
-    // Запускаем окно авторизации перед входом в главное меню
     loginSystem();
-
+        
     int choice = -1;
     while (choice != 0) {
         system("cls"); 
+        colorCyan();
         cout << "\n=========================================\n";
         cout << "          VOLUNTEER HUB SYSTEM           \n";
-        cout << "   Текущий режим: " << (isAdmin ? "[КООРДИНАТОР]" : "[ГОСТЬ]") << "\n";
+        cout << "   Текущий режим: ";
+        if(isAdmin) { colorGreen(); cout << "[КООРДИНАТОР]\n"; }
+        else { colorYellow(); cout << "[ГОСТЬ]\n"; }
+        colorCyan();
         cout << "=========================================\n";
-        cout << "1. Регистрация волонтеров и заявок ЧС "; if(!isAdmin) cout << "(ЗАБЛОКИРОВАНО)"; cout << "\n";
-        cout << "2. Экстренный мэтчинг (Поиск кадров) "; if(!isAdmin) cout << "(ЗАБЛОКИРОВАНО)"; cout << "\n";
-        cout << "3. Фиксация помощи и начисление часов "; if(!isAdmin) cout << "(ЗАБЛОКИРОВАНО)"; cout << "\n";
+        colorReset();
+        
+        cout << "1. Регистрация волонтеров и заявок ЧС "; if(!isAdmin) { colorRed(); cout << "(ЗАБЛОКИРОВАНО)"; colorReset(); } cout << "\n";
+        cout << "2. Экстренный мэтчинг (Поиск кадров) "; if(!isAdmin) { colorRed(); cout << "(ЗАБЛОКИРОВАНО)"; colorReset(); } cout << "\n";
+        cout << "3. Фиксация помощи и начисление часов "; if(!isAdmin) { colorRed(); cout << "(ЗАБЛОКИРОВАНО)"; colorReset(); } cout << "\n";
         cout << "4. Показать заявки (Сортировка по ЧС)\n";
         cout << "5. Вывести аналитику эффективности штаба\n";
-        cout << "6. Экспорт официального отчета в файл "; if(!isAdmin) cout << "(ЗАБЛОКИРОВАНО)"; cout << "\n";
+        cout << "6. Экспорт официального отчета в файл "; if(!isAdmin) { colorRed(); cout << "(ЗАБЛОКИРОВАНО)"; colorReset(); } cout << "\n";
         cout << "7. Инструкция по работе со штабом\n";
+        colorYellow();
         cout << "0. Сохранить изменения и выйти\n";
+        colorCyan();
         cout << "=========================================\n";
+        colorWhite();
         cout << "Введите ваш выбор: ";
+        colorReset();
 
         choice = getSafeIntInput();
 
         switch (choice) {
             case 1: 
                 if (isAdmin) registerEntity(); 
-                else { cout << " [!] Доступ закрыт! Гости не могут менять базу данных.\n"; waitForEnter(); }
+                else { colorRed(); cout << " [!] Доступ закрыт! Гости не могут менять базу данных.\n"; colorReset(); waitForEnter(); }
                 break;
             case 2: 
                 if (isAdmin) emergencyMatching(); 
-                else { cout << " [!] Доступ закрыт! Поиск доступен только координаторам.\n"; waitForEnter(); }
+                else { colorRed(); cout << " [!] Доступ закрыт! Поиск доступен только координаторам.\n"; colorReset(); waitForEnter(); }
                 break;
             case 3: 
                 if (isAdmin) closeRequestAndReward(); 
-                else { cout << " [!] Доступ закрыт! Начислять опыт может только админ.\n"; waitForEnter(); }
+                else { colorRed(); cout << " [!] Доступ закрыт! Начислять опыт может только админ.\n"; colorReset(); waitForEnter(); }
                 break;
             case 4: printSortedRequests(); break;
             case 5: showAnalytics(); break;
             case 6: 
                 if (isAdmin) exportReport(); 
-                else { cout << " [!] Доступ закрыт! Экспорт отчетов доступен только админу.\n"; waitForEnter(); }
+                else { colorRed(); cout << " [!] Доступ закрыт! Экспорт отчетов доступен только админу.\n"; colorReset(); waitForEnter(); }
                 break;
             case 7: showInstructions(); break;
             case 0:
                 if (isAdmin) {
                     saveRequests();
                     saveVolunteers();
+                    colorGreen();
                     cout << "\n[!] Все базы сохранены. Завершение работы штаба.\n";
+                    colorReset();
                 } else {
+                    colorYellow();
                     cout << "\n[!] Завершение работы в режиме гостя (изменения не перезаписаны).\n";
+                    colorReset();
                 }
                 break;
             default:
+                colorRed();
                 cout << " [!] Неверный пункт меню. Повторите попытку.\n";
+                colorReset();
                 waitForEnter();
         }
     }
