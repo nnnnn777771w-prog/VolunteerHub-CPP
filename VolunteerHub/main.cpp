@@ -123,49 +123,70 @@ void waitForEnter() {
 // ============================================================================
 
 void loginSystem() {
-    system("cls");
-    colorCyan();
-    cout << "=========================================\n";
-    cout << "      АВТОРИЗАЦИЯ В СИСТЕМЕ VOLUNTEER HUB\n";
-    cout << "=========================================\n";
-    colorReset();
-    cout << "1. Войти как Координатор (Администратор)\n";
-    cout << "2. Войти как Гость (Только просмотр)\n";
-    colorYellow();
-    cout << "Выберите тип входа: ";
-    colorReset();
-    int choice = getSafeIntInput();
-
-    if (choice == 1) {
-        char username[20];
-        char password[20];
+    while (true) {
+        system("cls");
+        colorCyan();
+        cout << "=========================================\n";
+        cout << "      АВТОРИЗАЦИЯ В СИСТЕМЕ VOLUNTEER HUB\n";
+        cout << "=========================================\n";
+        colorReset();
+        cout << "1. Войти как Координатор (Администратор)\n";
+        cout << "2. Войти как Гость (Только просмотр)\n";
+        colorYellow();
+        cout << "0. Выйти из программы\n";
+        cout << "=========================================\n";
+        cout << "Выберите действие: ";
+        colorReset();
         
-        cout << "Введите логин: ";
-        cin >> username;
-        cout << "Введите пароль: ";
-        cin >> password;
+        int choice = getSafeIntInput();
 
-        if (areStringsEqual(username, "admin") && areStringsEqual(password, "1234")) {
-            isAdmin = true;
-            colorGreen();
-            cout << "\n [ -> ] Доступ разрешен! Добро пожаловать, Координатор.\n";
+        if (choice == 1) {
+            char username[20];
+            char password[20];
+            
+            cout << "Введите логин: ";
+            cin >> username;
+            cout << "Введите пароль: ";
+            cin >> password;
+
+            if (areStringsEqual(username, "admin") && areStringsEqual(password, "1234")) {
+                isAdmin = true;
+                colorGreen();
+                cout << "\n [ -> ] Доступ разрешен! Добро пожаловать, Координатор.\n";
+                colorReset();
+                waitForEnter();
+                break; // Выходим из цикла авторизации и идем в главное меню
+            } else {
+                colorRed();
+                cout << "\n [!] Ошибка: Неверный логин или пароль!\n";
+                colorReset();
+                waitForEnter();
+                // Цикл повторится, гостя принудительно не включает
+            }
+        } 
+        else if (choice == 2) {
+            isAdmin = false;
+            colorYellow();
+            cout << "\n [ -> ] Вход выполнен в режиме Гостя.\n";
             colorReset();
             waitForEnter();
-        } else {
-            colorRed();
-            cout << "\n [!] Ошибка: Неверный логин или пароль! Вход в режиме Гостя.\n";
+            break; // Выходим из цикла авторизации и идем в главное меню как гость
+        } 
+        else if (choice == 0) {
+            colorYellow();
+            cout << "\nВыход из программы. Всего доброго!\n";
             colorReset();
-            isAdmin = false;
+            exit(0); // Полное завершение работы приложения
+        } 
+        else {
+            colorRed();
+            cout << "\n [!] Ошибка: Неверный выбор! Используйте только цифры 0, 1 или 2.\n";
+            colorReset();
             waitForEnter();
         }
-    } else {
-        isAdmin = false;
-        colorYellow();
-        cout << "\n [ -> ] Вход выполнен в режиме Гостя.\n";
-        colorReset();
-        waitForEnter();
     }
 }
+
 
 // ============================================================================
 // ЭТАП 2. ЗАГРУЗКА И СОХРАНЕНИЕ ФАЙЛОВ
