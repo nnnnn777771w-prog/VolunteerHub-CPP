@@ -36,7 +36,6 @@ struct Volunteer {
 
 class VolunteerHub {
 private:
-    // Инициализируем массивы и переменные сразу, чтобы убрать C26495
     Request requests[MAX_REQUESTS]{};
     int requestCount = 0;
 
